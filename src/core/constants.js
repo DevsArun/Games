@@ -42,17 +42,46 @@ export const TRUCK = {
 
 // Cargo are dynamic rigid bodies. Turn too hard → they slide/topple → mission fails.
 export const CARGO = {
-  MASS: 220,
-  SIZE: { x: 0.6, y: 0.6, z: 0.6 },
-  SPILL_HEIGHT: 0.25, // if cargo drops below trailer bed by this much → "spilled"
-  INTACT_THRESHOLD: 0.6, // mission fails below 60% cargo intact
+  MASS: 90,
+  SIZE: { x: 0.4, y: 0.4, z: 0.4 }, // half-extents → 0.8m crates
+  COUNT: 6, // crates spawned on the trailer per run
+  SPILL_HEIGHT: 1.2, // crate falls this far below its spawn height → "spilled"
+  INTACT_THRESHOLD: 0.5, // mission fails below 50% cargo intact
 };
 
 export const MISSION = {
-  DEFAULT_TIME_LIMIT: 180, // seconds
+  DEFAULT_TIME_LIMIT: 90, // seconds to reach the delivery gate
   MAX_DAMAGE: 100,
-  DAMAGE_PER_IMPACT: 6, // scaled by impact velocity
+  DAMAGE_PER_IMPACT: 4, // scaled by impact velocity
+  IMPACT_MIN_VELOCITY: 3.5, // m/s along normal before damage registers
 };
+
+// The delivery route geometry.
+export const TRACK = {
+  ROAD_WIDTH: 22,
+  LENGTH: 460, // start (z=0) → finish gate (z=LENGTH)
+  START: { x: 0, y: 1.3, z: 6 },
+  FINISH_Z: 440,
+  BARRIER_HEIGHT: 1.4,
+  OBSTACLE_COUNT: 14, // scattered hazards that deal damage
+};
+
+// Chase camera tuning.
+export const CAMERA = {
+  BACK: 13, // distance behind the truck
+  HEIGHT: 6.5, // height above the truck
+  LOOK_AHEAD: 8, // how far ahead of the truck to aim
+  LERP: 0.08, // position smoothing (0..1 per frame)
+};
+
+// Rank thresholds — combined score of time-left ratio + cargo intact.
+export const RANKS = [
+  { grade: 'S', min: 0.9 },
+  { grade: 'A', min: 0.75 },
+  { grade: 'B', min: 0.6 },
+  { grade: 'C', min: 0.4 },
+  { grade: 'D', min: 0 },
+];
 
 // Meta-game economy.
 export const ECONOMY = {

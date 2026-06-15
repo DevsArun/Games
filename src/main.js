@@ -6,6 +6,7 @@ import { PhysicsWorld } from './core/PhysicsWorld.js';
 import { InputManager } from './core/InputManager.js';
 import { hasIncomingChallenge, parseIncomingChallenge } from './viral/Challenge.js';
 import { CrazyGames } from './sdk/CrazyGames.js';
+import { Game } from './game/Game.js';
 
 /**
  * ──────────────────────────────────────────────────────────────────────────────
@@ -203,6 +204,10 @@ function boot() {
   const engine = new Engine();
   window.__NEON_HAUL__ = engine; // dev handle for debugging in the console
 
+  // Boot the full game (track, truck, cargo, UI state machine).
+  const game = new Game(engine);
+  engine.game = game;
+
   if (bar) bar.style.width = '100%';
 
   // Remove the splash on the next frame, once the first render is guaranteed.
@@ -210,38 +215,12 @@ function boot() {
     document.getElementById('boot-splash')?.remove();
   });
 
-  // Add a minimal ground plane so the scene isn't empty before track loading lands.
-  _addPlaceholderGround(engine);
-
   engine.start();
 
   console.info(
     `%c${APP.TITLE} v${APP.VERSION} booted ✓`,
     'color:#22d3ee;font-weight:bold'
   );
-}
-
-/** Temporary visible floor so the boot scene reads as "alive" pre-track-loading. */
-function _addPlaceholderGround(engine) {
-  const grid = new THREE.GridHelper(400, 80, 0x22d3ee, 0x10131f);
-  grid.position.y = 0.01;
-  engine.scene.add(grid);
-
-  const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(400, 400),
-    new THREE.MeshStandardMaterial({ color: 0x0a0c14, roughness: 0.95, metalness: 0.0 })
-  );
-  plane.rotation.x = -Math.PI / 2;
-  plane.receiveShadow = true;
-  engine.scene.add(plane);
-
-  // Slow idle camera orbit so the menu background feels premium and alive.
-  let t = 0;
-  engine.onUpdate((dt) => {
-    t += dt * 0.15;
-    engine.camera.position.set(Math.sin(t) * 16, 8, Math.cos(t) * 16);
-    engine.camera.lookAt(0, 1, 0);
-  });
 }
 
 if (document.readyState === 'loading') {
