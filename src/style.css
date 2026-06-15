@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Self-hosted-ish webfont (display=swap keeps it non-blocking) ───────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap');
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Respect notches/safe-areas on mobile (iOS, Android gesture nav). */
+  #ui-root {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+}
+
+@layer components {
+  /* Re-usable premium glassmorphism panel. */
+  .glass {
+    @apply rounded-2xl border border-white/10 bg-white/5 shadow-glass backdrop-blur-md;
+  }
+
+  .glass-strong {
+    @apply rounded-2xl border border-white/15 bg-ink-700/70 shadow-glass backdrop-blur-xl;
+  }
+
+  /* Neon primary action button. */
+  .btn-neon {
+    @apply pointer-events-auto rounded-xl border border-neon-cyan/40 bg-neon-cyan/10 px-5 py-3
+      font-semibold tracking-wide text-neon-cyan shadow-glow
+      transition-all duration-150 hover:bg-neon-cyan/20 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply pointer-events-auto rounded-xl border border-white/10 bg-white/5 px-5 py-3
+      font-medium text-white/80 transition-all duration-150 hover:bg-white/10 active:scale-95;
+  }
+
+  /* HUD digital readout. */
+  .readout {
+    @apply font-mono tabular-nums tracking-tight;
+  }
+}
+
+@layer utilities {
+  .pointer-auto {
+    pointer-events: auto;
+  }
+}
