@@ -71,9 +71,48 @@ export class Game {
     this.runNumber = this._loadRunNumber();
     this._menuT = 0;
     this.mission = null;
+    this._view = 'cockpit'; // 'cockpit' (first-person) | 'chase'
+    this._cockpitEls = [];
+
+    // 'V' toggles between first-person cockpit and chase camera mid-run.
+    this._onKey = (e) => {
+      if (e.code === 'KeyV' && this.state === 'playing') this.toggleView();
+    };
+    window.addEventListener('keydown', this._onKey);
 
     engine.onUpdate((dt, controls) => this.update(dt, controls));
     this.enterMenu();
+  }
+
+  // ── First-person cockpit overlay (cinematic frame + rain) ──────────────────────
+  _showCockpitOverlay() {
+    if (this._cockpitEls.length) return;
+    const frame = document.createElement('div');
+    frame.className = 'cockpit-frame';
+    const rain = document.createElement('div');
+    rain.className = 'rain';
+    this.uiRoot.append(rain, frame);
+    this._cockpitEls = [frame, rain];
+  }
+
+  _hideCockpitOverlay() {
+    this._cockpitEls.forEach((el) => el.remove());
+    this._cockpitEls = [];
+  }
+
+  toggleView() {
+    this._view = this._view === 'cockpit' ? 'chase' : 'cockpit';
+    this._applyView();
+  }
+
+  _applyView() {
+    const cockpit = this._view === 'cockpit';
+    this.camCtrl.setMode(cockpit ? 'cockpit' : 'chase');
+    // In first-person we hide our own rig so the camera sees out of the cab.
+    this.truck?.setVisible(!cockpit);
+    if (cockpit) this._showCockpitOverlay();
+    else this._hideCockpitOverlay();
+    if (this.truck) this.camCtrl.snap(this.truck);
   }
 
   _loadRunNumber() {
@@ -134,6 +173,7 @@ export class Game {
   enterMenu() {
     this.state = 'menu';
     this.camCtrl.enabled = false;
+    this._hideCockpitOverlay();
     this._clearCargo();
     this.ghostPlayer?.setVisible(false);
     this._buildTruck(); // showcase the (possibly newly-skinned) rig in the menu
@@ -175,10 +215,12 @@ export class Game {
     }
 
     this.camCtrl.enabled = true;
-    this.camCtrl.snap(this.truck);
 
     this.hud.mount();
     this.touch.mount();
+
+    this._view = 'cockpit';
+    this._applyView(); // first-person by default, like a real truck-sim cabin
 
     this.mission = {
       timeLeft: MISSION.DEFAULT_TIME_LIMIT,
@@ -245,6 +287,8 @@ export class Game {
 
     this.hud.unmount();
     this.touch.unmount();
+    this._hideCockpitOverlay();
+    this.truck.setVisible(true); // reveal the rig for the result/settle view
     this.flex.show(result, success ? ghost : null, {
       onAgain: () => {
         this.flex.hide();
@@ -314,6 +358,7 @@ export class Game {
       speedKmh: truck.speedKmh,
       damage: truck.damage,
       timeLeft: Math.max(0, this.mission.timeLeft),
+      distToGate: this.track.finishZ - truck.position.z,
     });
 
     // Win / lose checks.

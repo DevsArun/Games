@@ -32,6 +32,7 @@ class Engine {
     this._maxFrameDelta = 0.1; // clamp huge tab-switch deltas (s)
     this._running = false;
     this._updaters = new Set(); // per-frame callbacks (truck, cargo, HUD, ghost)
+    this.composer = null; // post-processing pipeline (set async by _initPostFX)
 
     this._initRenderer();
     this._initScene();
@@ -39,6 +40,7 @@ class Engine {
     this._initInput();
     this._initResize();
     this._detectChallenge();
+    this._initPostFX(); // fire-and-forget; falls back to direct render if it fails
   }
 
   // ── Renderer ────────────────────────────────────────────────────────────────
@@ -103,6 +105,36 @@ class Engine {
     this.physics = new PhysicsWorld();
   }
 
+  // ── Post-processing (neon bloom) ────────────────────────────────────────────────
+  // Dynamically imported + fully guarded: if anything fails, we silently fall back
+  // to direct rendering so the game always boots.
+  async _initPostFX() {
+    try {
+      const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }] = await Promise.all([
+        import('three/examples/jsm/postprocessing/EffectComposer.js'),
+        import('three/examples/jsm/postprocessing/RenderPass.js'),
+        import('three/examples/jsm/postprocessing/UnrealBloomPass.js'),
+      ]);
+      const vw = window.visualViewport?.width ?? window.innerWidth;
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+
+      const composer = new EffectComposer(this.renderer);
+      composer.addPass(new RenderPass(this.scene, this.camera));
+      // (resolution, strength, radius, threshold) — tuned so only neon pops.
+      const bloom = new UnrealBloomPass(new THREE.Vector2(vw, vh), 0.7, 0.5, 0.82);
+      composer.addPass(bloom);
+      composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      composer.setSize(vw, vh);
+
+      this.composer = composer;
+      this.bloom = bloom;
+      console.info('%c[NEON HAUL] Bloom post-processing online ✨', 'color:#22d3ee');
+    } catch (err) {
+      console.warn('[NEON HAUL] PostFX unavailable, using direct render.', err);
+      this.composer = null;
+    }
+  }
+
   // ── Input (desktop + mobile unified) ───────────────────────────────────────────
   _initInput() {
     this.input = new InputManager();
@@ -133,6 +165,11 @@ class Engine {
 
     this.camera.aspect = vw / vh;
     this.camera.updateProjectionMatrix();
+
+    if (this.composer) {
+      this.composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      this.composer.setSize(vw, vh);
+    }
   }
 
   // ── Incoming "Challenge a Friend" link ──────────────────────────────────────────
@@ -182,7 +219,9 @@ class Engine {
     const controls = this.input.sample();
     for (const fn of this._updaters) fn(dt, controls);
 
-    this.renderer.render(this.scene, this.camera);
+    // Render through the bloom composer when available, else straight to screen.
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   }
 
   dispose() {

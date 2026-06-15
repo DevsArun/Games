@@ -20,7 +20,7 @@ export class TouchControls {
   mount() {
     if (!InputManager.isTouchDevice()) return this; // desktop → no overlay
     const el = document.createElement('div');
-    el.className = 'absolute inset-x-0 bottom-0 flex items-end justify-between p-6';
+    el.className = 'absolute inset-x-0 bottom-0 z-20 flex items-end justify-between p-6';
     el.innerHTML = `
       <!-- Steering (left thumb) -->
       <div data-touch="steer"
